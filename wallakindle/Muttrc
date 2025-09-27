@@ -1,0 +1,14 @@
+set from = "dev@bertamini.net"
+set realname = "Matteo Bertamini"
+
+# IMAP settings
+set imap_user = ""
+set imap_pass = ""
+
+# SMTP settings
+set smtp_url = "s"
+set smtp_pass = ""
+set ssl_starttls = yes
+set ssl_force_tls = yes
+
+
