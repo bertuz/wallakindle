@@ -15,6 +15,8 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 
 
 COPY wallakindle.sh /home/ubuntu/wallakindle.sh 
+COPY setup-wallakindle.sh /home/ubuntu/setup-wallakindle.sh
+RUN chmod +x /home/ubuntu/setup-wallakindle.sh
 RUN chmod +x /home/ubuntu/wallakindle.sh
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
