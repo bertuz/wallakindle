@@ -1,0 +1,62 @@
+version: "3.8"
+
+services:
+  traefik:
+    image: traefik:v3.2.1
+    restart: unless-stopped
+    command:
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entryPoint.to=websecure
+      - --entrypoints.web.http.redirections.entryPoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      - --providers.docker=true
+      - --providers.docker.exposedByDefault=false # require containers to define `traefik.enable=true` to be exposed
+      - --api
+      - --certificatesresolvers.letsencryptresolver.acme.email=${EMAIL}
+      - --certificatesresolvers.letsencryptresolver.acme.storage=/acme.json
+      - --certificatesresolvers.letsencryptresolver.acme.tlschallenge=true
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro # allow Traefik to listen to Docker events
+      - ${TRAEFIK_DIR}/acme.json:/acme.json # stores ACME (HTTPS) certificates
+    labels:
+      - traefik.enable=true
+
+      # "admin" middleware definition
+      # to be used by services that do not have their own security
+      - traefik.http.middlewares.admin.basicauth.users=${HTTP_BASIC_USER}:${HTTP_BASIC_PWD}
+
+      # expose the traefik dashboard
+      - traefik.http.routers.traefik.entrypoints=websecure
+      - traefik.http.routers.traefik.rule=Host(`traefik.${DOMAINNAME}`)
+      - traefik.http.routers.traefik.service=api@internal
+      - traefik.http.routers.traefik.middlewares=admin
+      - traefik.http.routers.traefik.tls.certresolver=letsencryptresolver
+
+  wallabag:
+    image: wallabag/wallabag:2.6.10
+    environment:
+      - SYMFONY__ENV__DOMAIN_NAME=https://wallabag.${DOMAINNAME}
+      - SYMFONY__ENV__FOSUSER_REGISTRATION=false
+    volumes:
+      - ${WALLABAG_DIR}/data:/var/www/wallabag/data
+      - ${WALLABAG_DIR}/images:/var/www/wallabag/web/assets/images
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.wallabag.entrypoints=websecure
+      - traefik.http.routers.wallabag.rule=Host(`wallabag.${DOMAINNAME}`)
+      - traefik.http.routers.wallabag.tls.certresolver=letsencryptresolver
+  wallakindle:
+    build: wallakindle
+    image: wallakindle:1.0.0
+    volumes:
+      - /tmp
+      - ./wallakindle/config.ini:/home/ubuntu/config.ini
+      - ./wallakindle/Muttrc:/root/.muttrc
+      - ./wallakindle/log:/var/log/
+    environment:
+      - KINDLE_EMAIL_ADDRESS=${WALLAKINDLE_EMAIL_ADDRESS}
+      - KINDLE_TAGS_FILTER=${WALLAKINDLE_TAGS_FILTER}

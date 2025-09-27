@@ -1,0 +1,4 @@
+wallakindle/log/**/*
+wallakindle/Muttrc
+wallakindle/config.ini
+.env
